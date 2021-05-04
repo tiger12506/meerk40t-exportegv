@@ -1,5 +1,7 @@
 from meerk40t.device.lasercommandconstants import *
 
+output_path = "/home/jacob/cut/output.egv"
+
 def plugin(kernel, lifecycle):
     if lifecycle == 'register':
         """
@@ -8,10 +10,11 @@ def plugin(kernel, lifecycle):
         """
 
         def planexport():
-            yield COMMAND_WAIT_FINISH
             def export():
                 context = kernel.get_context("/")
-                context("egv_export /home/jacob/cut/output.egv\n")
+                context("egv_export {}\n".format(output_path))
+                context("window close Controller\n")
+                context("window close JobSpooler\n")
                 context("abort\n")
             yield COMMAND_FUNCTION, export
         kernel.register('plan/export', planexport)
@@ -41,7 +44,11 @@ def plugin(kernel, lifecycle):
             context("plan preopt\n")
             context("plan optimize\n")
             context("plan command --op export\n")
+#            context("plan command --op interrupt\n")
+            context("window open Controller\n")
+            context("window open JobSpooler\n")
             context("start\n")
+            context("hold\n")
             context("plan spool\n")
 
     elif lifecycle == 'mainloop':
