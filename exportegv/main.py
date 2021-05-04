@@ -1,3 +1,4 @@
+from meerk40t.device.lasercommandconstants import *
 
 def plugin(kernel, lifecycle):
     if lifecycle == 'register':
@@ -6,9 +7,15 @@ def plugin(kernel, lifecycle):
         modules and modifiers to be used in meerk40t.
         """
 
-        @kernel.console_command('example', help="Says Hello World.")
-        def example_cmd(command, channel, _, args=tuple(), **kwargs):
-            channel(_('Hello World'))
+        def planexport():
+            yield COMMAND_WAIT_FINISH
+            def export():
+                context = kernel.get_context("/")
+                context("egv_export /home/jacob/cut/output.egv\n")
+                context("abort\n")
+            yield COMMAND_FUNCTION, export
+        kernel.register('plan/export', planexport)
+
     elif lifecycle == 'boot':
         """
         Do some persistent actions or start modules and modifiers. Register any scheduled tasks or threads that need
@@ -20,37 +27,23 @@ def plugin(kernel, lifecycle):
         Start process running. Sometimes not all modules and modifiers will be ready as they are processed in order
         during boot. If your thread or work depends on other parts of the system being fully established they should 
         work here.
-
-        Try out:
-        def interrupt():
-            yield COMMAND_WAIT_FINISH
-            def intr():
-                input("waiting for user...")
-            yield COMMAND_FUNCTION,intr
-        kernel.register("plan/interrupt", self.interrupt)
         """
         context = kernel.get_context("/")
         elements = context.elements
 
-        @elements.tree_operation("Hold and Spool Job", node_type="root", help="Shortcut to start and spool entire job")
-        def run_job(node, **kwargs):
-            context.console("plan clear\n")
-            context.console("plan copy\n")
-            context.console("plan preprocess\n")
-            context.console("plan validate\n")
-            context.console("plan blob\n")
-            context.console("plan preopt\n")
-            context.console("plan optimize\n")
-            context.console("window open Controller\n")
-            context.console("start\n")
-            context.console("hold\n")
-            context.console("plan spool\n")
-
         @elements.tree_operation("Export EGV", node_type="root", help="Shortcut to export output.egv. Resets controller.")
-        def exportegv(node, **kwargs):
-            context.console("egv_export /home/jacob/cut/output.egv\n")
-            context.console("abort\n")
-            context.console("timer 1 10 window close Controller\n")
+        def run_job(node, **kwargs):
+            context("plan clear\n")
+            context("plan copy\n")
+            context("plan preprocess\n")
+            context("plan validate\n")
+            context("plan blob\n")
+            context("plan preopt\n")
+            context("plan optimize\n")
+            context("plan command --op export\n")
+            context("start\n")
+            context("plan spool\n")
+
     elif lifecycle == 'mainloop':
         """
         This is the start of the gui and will capture the default thread as gui thread. If we are writing a new gui
